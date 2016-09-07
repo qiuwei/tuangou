@@ -103,7 +103,7 @@ function calcPrice(order, productInfos) {
       toPay += order[k] * productInfos[k][2];
     }
   }
-  return toPay;
+  return toPay.toFixed(2);
 }
 
 function setupIndividual(orders, productInfos) {
@@ -137,15 +137,17 @@ function setupTotal(orders, productInfos) {
     var productCount = 0
     for( kk in orders) {
       var order = orders[kk];
-      productCount += order[k];
+      var count = +order[k]
+      productCount += count;
     }
-    if(productCount > 0) {
-        totals.appendRow([k, productCount]);
+    if(productCount > 0){
+      totals.appendRow([k, productCount]);
+      totalPrice += productCount * price;
+      totalOriginPrice += productCount * originPrice;
     }
-    totalPrice += productCount * price;
-    totalOriginPrice += productCount * originPrice;
+
   }
-  totals.appendRow(['总价: ' + totalPrice, '总进货价: '+ totalOriginPrice ]);
+  totals.appendRow(['总价: ' + totalPrice.toFixed(2), '总进货价: '+ totalOriginPrice.toFixed(2) ]);
 }
 
 function updateForms() {
@@ -173,12 +175,7 @@ function onFormSubmit(e) {
   //for (var response in form.getResponses()){
   //  Logger.log('response: ', response);
   //}
-  var user = {name: e.namedValues['Name'][0], email: e.namedValues['Email'][0]};
-  Logger.log(user);
 
-  var individualResult = [];
-  individualResult.push(user.name);
-  Logger.log(individualResult);
 
   var orders = getOrders();
 
@@ -187,26 +184,12 @@ function onFormSubmit(e) {
 
 
 
-  //var productInventory = getProductInventory(values);
-  //var topay = 0;
 
-  //for ( var productName in productInventory) {
-    //var product = productInventory[productName];
-    //var price = product[2];
-    //var num = e.namedValues[productName][0];
-    //if ( num !== 0) {
-      //topay += num*price;
-      //individualResult.push(productName + ': ' + num)
-
-    //}
-  //}
   //individualResult.push(topay);
   //Logger.log('Indiviuals: ', individualResult);
   //individuals.appendRow(individualResult);
 
-
-  //sendInvites_(user, response);
-  //sendDoc_(user, response);
+  sendDoc_(e);
 }
 
 
@@ -217,27 +200,46 @@ function onFormSubmit(e) {
  * @param {Object} user An object that contains the user's name and email.
  * @param {String[][]} response An array of data for the user's session choices.
  */
-function sendDoc_(user, response) {
-  var doc = DocumentApp.create('Order for ' + user.name)
+function sendDoc_(e) {
+  var productInventory = getProductInventory();
+  var topay = 0;
+  var user = {name: e.namedValues['Name'][0], email: e.namedValues['Email'][0]};
+  individualResult = [];
+
+  for ( var productName in productInventory) {
+    var product = productInventory[productName];
+    var price = product[2];
+    var num = e.namedValues[productName][0];
+    if ( num !== 0) {
+      topay += num*price;
+      individualResult.push([productName, num, price])
+
+    }
+  }
+  var doc = DocumentApp.create(user.name + '的团购订单')
       .addEditor(user.email);
   var body = doc.getBody();
-  var table = [['Session', 'Date', 'Time', 'Location']];
-  for (var i = 0; i < response.length; i++) {
-    table.push([response[i][0], response[i][1].toLocaleDateString(),
-        response[i][2].toLocaleTimeString(), response[i][4]]);
+  var table = [['名称', '数量', '单价']];
+  for (var i = 0; i < individualResult.length; i++) {
+    table.push(individualResult[i]);
   }
   body.insertParagraph(0, doc.getName())
       .setHeading(DocumentApp.ParagraphHeading.HEADING1);
   table = body.appendTable(table);
   table.getRow(0).editAsText().setBold(true);
+  body.appendHorizontalRule();
+  body.appendParagraph("总价: "+ topay);
   doc.saveAndClose();
 
   // Email a link to the Doc as well as a PDF copy.
   MailApp.sendEmail({
     to: user.email,
     subject: doc.getName(),
-    body: 'Thanks for registering! Here\'s your itinerary: ' + doc.getUrl(),
+    body: '谢谢订购，您的订单见附件！',
     attachments: doc.getAs(MimeType.PDF),
   });
+
+  DriveApp.getFileById(doc.getId()).setTrashed(true);
 }
+
 
