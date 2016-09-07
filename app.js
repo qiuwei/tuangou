@@ -22,7 +22,6 @@ function setUpOrder_() {
   var range = sheet.getDataRange();
   var values = range.getValues();
   var formName = Browser.inputBox('Input the name for the form');
-  //Browser.msgBox(values);
   setUpForm_(ss, values, formName);
   ScriptApp.newTrigger('onFormSubmit').forSpreadsheet(ss).onFormSubmit()
       .create();
@@ -55,7 +54,6 @@ function getProductInventory(values) {
 
 function setUpForm_(ss, values, formName) {
   var productInventory = getProductInventory(values);
-  // Create the form and add a multiple-choice question for each timeslot.
   var form = FormApp.create(formName);
 
   form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
@@ -91,11 +89,9 @@ function getOrders(e) {
     var email = record[2];
     orders[email] = {}; //overwrite existing orders
     for(var j = 1; j < record.length; j++){
-      //Logger.log('field names: ', fieldNames[j] );
       orders[email][fieldNames[j]] = record[j];
     }
   }
-  //Logger.log('orders:', orders);
   return orders;
 }
 
@@ -156,53 +152,29 @@ function setupTotal(orders, productInfos) {
 
 function updateForms() {
   var orders = getOrders();
-  //Logger.log('orders: ', orders)
   var productInfos = getProductInventory();
-  //Logger.log('productInfos: ', productInfos)
 
   setupIndividual(orders, productInfos);
   setupTotal(orders, productInfos);
 }
 
 /**
- * A trigger-driven function that sends out calendar invitations and a
- * personalized Google Docs itinerary after a user responds to the form.
+ * A trigger-driven function that update all of the sheets
  *
  * @param {Object} e The event parameter for form submission to a spreadsheet;
  *     see https://developers.google.com/apps-script/understanding_events
  */
 function onFormSubmit(e) {
-  //var formUrl = SpreadsheetApp.getActiveSpreadsheet().getFormUrl();
-  //var formID = formUrl.match(/[-\w]{25,}/);
-  //var form = FormApp.openById(formID);
-  //Logger.log('formID: ', formID);
-  //for (var response in form.getResponses()){
-  //  Logger.log('response: ', response);
-  //}
-
-
-  var orders = getOrders();
-
-  //Logger.log('orders:', orders);
   updateForms();
-
-
-
-
-  //individualResult.push(topay);
-  //Logger.log('Indiviuals: ', individualResult);
-  //individuals.appendRow(individualResult);
-
   sendDoc_(e);
 }
 
 
 
 /**
- * Create and share a personalized Google Doc that shows the user's itinerary.
- *
- * @param {Object} user An object that contains the user's name and email.
- * @param {String[][]} response An array of data for the user's session choices.
+ * Create and send an order to the user 
+ * @param {Object} e The event parameter for form submission to a spreadsheet;
+ *     see https://developers.google.com/apps-script/understanding_events
  */
 function sendDoc_(e) {
   var productInventory = getProductInventory();
@@ -246,6 +218,3 @@ function sendDoc_(e) {
 
   DriveApp.getFileById(doc.getId()).setTrashed(true);
 }
-
-
-
