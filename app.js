@@ -6,6 +6,10 @@ function onOpen() {
   SpreadsheetApp.getActive().addMenu('Order', menu);
 }
 
+function onInstall(e) {
+  onOpen();
+}
+
 
 function setUpOrder_() {
   if (ScriptProperties.getProperty('calId')) {
@@ -71,16 +75,16 @@ function getOrders(e) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var responseSheet = ss.getSheets();
   for(var i = 0; i < responseSheet.length; i++){
-    Logger.log('sheet name: ', responseSheet[i].getName());
+    //Logger.log('sheet name: ', responseSheet[i].getName());
   }
   //Logger.log(responseSheet);
   var records = responseSheet[0].getDataRange().getValues();
-  Logger.log('records are: ', records);
+  //Logger.log('records are: ', records);
 
   var orders = {};
   var totalOrder = {};
   var fieldNames = records[0];
-  Logger.log('field names: ', fieldNames);
+  //Logger.log('field names: ', fieldNames);
   for(var i = 1; i < records.length; i++){
     var record = records[i];
     var name = record[1];
@@ -111,8 +115,8 @@ function setupIndividual(orders, productInfos) {
   individuals.clear();
   for(k in orders) {
     var order = orders[k];
-    Logger.log('order: ', orders);
-    Logger.log('price: ', calcPrice(order, productInfos));
+    //Logger.log('order: ', orders);
+    //Logger.log('price: ', calcPrice(order, productInfos));
     var individualResult = [];
     individualResult.push(order['Name']);
     individualResult.push(calcPrice(orders[k], productInfos));
@@ -121,7 +125,7 @@ function setupIndividual(orders, productInfos) {
         individualResult.push(kk + ':' + order[kk]);
       }
     }
-    Logger.log('row: ', individualResult);
+    //Logger.log('row: ', individualResult);
     individuals.appendRow(individualResult);
   }
 }
@@ -152,9 +156,9 @@ function setupTotal(orders, productInfos) {
 
 function updateForms() {
   var orders = getOrders();
-  Logger.log('orders: ', orders)
+  //Logger.log('orders: ', orders)
   var productInfos = getProductInventory();
-  Logger.log('productInfos: ', productInfos)
+  //Logger.log('productInfos: ', productInfos)
 
   setupIndividual(orders, productInfos);
   setupTotal(orders, productInfos);
@@ -179,7 +183,7 @@ function onFormSubmit(e) {
 
   var orders = getOrders();
 
-  Logger.log('orders:', orders);
+  //Logger.log('orders:', orders);
   updateForms();
 
 
@@ -210,7 +214,7 @@ function sendDoc_(e) {
     var product = productInventory[productName];
     var price = product[2];
     var num = e.namedValues[productName][0];
-    if ( num !== 0) {
+    if ( num > 0) {
       topay += num*price;
       individualResult.push([productName, num, price])
 
@@ -228,7 +232,8 @@ function sendDoc_(e) {
   table = body.appendTable(table);
   table.getRow(0).editAsText().setBold(true);
   body.appendHorizontalRule();
-  body.appendParagraph("总价: "+ topay);
+  body.appendParagraph('总价: '+ topay.toFixed(2));
+  body.appendParagraph('如订单有误，或需修改订单，请在原表单重新填写提交！注意请使用同样的电子邮件！');
   doc.saveAndClose();
 
   // Email a link to the Doc as well as a PDF copy.
@@ -241,5 +246,6 @@ function sendDoc_(e) {
 
   DriveApp.getFileById(doc.getId()).setTrashed(true);
 }
+
 
 
